@@ -9,7 +9,7 @@ import Config from './config.js';
 const game = new GameManager();
 const gui = new GuiManager(
   game.snake,
-  game.fruit,
+  game.foods,
   game.score,
   game.highScore
 );

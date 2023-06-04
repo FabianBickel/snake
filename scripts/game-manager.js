@@ -15,8 +15,8 @@ export default class gameManager {
 
   #snake;
   get snake() { return this.#snake; }
-  #fruits;
-  get fruits() { return this.#fruits; }
+  #foods;
+  get foods() { return this.#foods; }
   #score;
   get score() { return this.#score; }
   #highScore;
@@ -24,15 +24,24 @@ export default class gameManager {
 
   constructor() {
     // Keep this as small as possible to reduce load time
-    this.#snake = this.#createSnake();
+    this.#snake = createSnake();
+    this.#foods = createFoods();
+
+    function createSnake() {
+      let snake = [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ];
+      return snake
+    }  
+  
+    function createFoods() {
+      let foods = [
+        { x: 0, y: 0 },
+      ];
+      return foods
+    }
   }
 
-  #createSnake() {
-    let snake = [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 2, y: 0 },
-    ];
-    return snake
-  }  
 }

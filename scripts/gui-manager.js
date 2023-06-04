@@ -58,7 +58,7 @@ class Display {
     }
   }
 
-  static snakeSpeed() {
+  static backgroundColor() {
     this.#applyStyleToPreviewElements('backgroundColor', Selector.backgroundColor.value, 'backgroundColor');
   }
   static snakeColor() {
@@ -251,7 +251,7 @@ export default class GuiManager {
     this.#clearCanvas();
     // this.#drawGrid();
     this.#drawSnake();
-    // this.#drawFood();
+    this.#drawFoods();
   }
 
   #clearCanvas() {
@@ -259,27 +259,25 @@ export default class GuiManager {
   }
 
   #drawSnake() {
-    for (let i = 0; i < this.#snake.length; i++) {
-      const snakePart = this.#snake[i];
-      this.#context.fillStyle = this.#snakeColor;
-      this.#context.fillRect(
-        snakePart.x * this.#boxWidth
-        , snakePart.y * this.#boxHeight
-        , this.#boxWidth
-        , this.#boxHeight
-      );
+    for (const segment of this.#snake) {
+      this.#drawBox(segment.x, segment.y, this.#snakeColor);
     }
   }
 
-  #drawFood() {
-    this.#context.fillStyle = this.#foodColor;
-    this.#context.fillRect(
-      this.#food.x * this.#boxWidth
-      , this.#food.y * this.#boxHeight
-      , this.#boxWidth
-      , this.#boxHeight
-    );
+  #drawFoods() {
+    for (const food of this.#food) {
+      this.#drawBox(food.x, food.y, this.#foodColor);
+    }
   }
+
+  #drawBox(x, y, color) {
+    this.#context.fillStyle = color;
+    x *= this.#boxWidth;
+    y *= this.#boxHeight;
+    const width = this.#boxWidth;
+    const height = this.#boxHeight;
+    this.#context.fillRect(x, y, width, height);
+    }
 
   #drawGrid() {
     if (!this.#backgroundColor) {
