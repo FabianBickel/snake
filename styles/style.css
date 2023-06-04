@@ -1,13 +1,200 @@
-#gameCanvas {
-    background-color: #000;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    height: 100dvh;
     background-color: #000;
     margin: 0;
+    font-family: Arial, sans-serif;
+    transition: background-color 1s ease;
     overflow: hidden;
+}
+
+#scoreOverlay {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 30px;
+}
+
+#menuOverlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+    padding-block: 16px;
+    background-color: rgba(0, 0, 0, 1);
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(100px);
+
+    box-shadow: 0 0 400px rgba(0, 0, 0, 0) inset;
+    transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, box-shadow;
+    transition-timing-function: cubic-bezier(.25, .43, .06, .96);
+    transition-duration: 1s;
+}
+
+#menuOverlay.hidden {
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+    box-shadow: 0 0 400px rgba(0, 0, 0, 0) inset;
+}
+
+#menuContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+}
+
+:root {
+    --menu-width: 300px;
+}
+
+.menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: var(--menu-width);
+    height: min-content;
+    max-width: 100%;
+    max-height: 100%;
+    overflow-y: scroll;
+    padding: 16px;
+    /* margin: 0; */
+    background-color: rgba(52, 56, 64, 0.3);
+    border: 1px solid rgba(232, 240, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.25);
+    color: #fff;
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(100px);
+    opacity: 1;
+    transition: opacity .5s ease;
+}
+
+.menu * {
+    opacity: 0.8;
+}
+
+#menuOverlay.hidden .menu {
+    opacity: 0;
+}
+
+.menu h2 {
+    margin-top: 0;
+}
+
+.menu label {
+    display: flex;
+    align-items: center;
+    width: min-content;
+    padding: 4px
+}
+
+.menu input,
+.menu select {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    /* height: 30px; */
+    border-radius: 4px;
+    border: none;
+}
+
+.menu input:disabled,
+.menu select:disabled {
+    opacity: 0.2;
+}
+
+.menu::-webkit-scrollbar {
+    display: none;
+}
+
+.menu input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    opacity: 1;
+}
+
+.menu input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.menu input[type="color"]::-webkit-color-swatch {
+    border: 1.5px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.menu hr {
+    grid-column: span 2;
+    width: 100%;
+    border: none;
+    border-top: 1px solid rgba(232, 240, 255, 0.2);
+}
+
+.menu button {
+    grid-column: span 2;
+    padding: 10px;
+    color: #fff;
+    background-color: #007BFF;
+    border: none;
+    font-size: 1rem;
+    border-radius: 5px;
+}
+
+.menu button,
+.menu input,
+.menu select {
+    transition: opacity 0.3s ease;
+}
+
+
+
+.menu button:hover:not(:disabled),
+.menu input:hover:not(:disabled),
+.menu select:hover:not(:disabled) {
+    opacity: 0.6;
+}
+
+#preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100%;
+    padding-inline: 0;
+    padding-bottom: 0;
+}
+
+#preview hr {
+    margin-bottom: -16px;
+}
+
+.backgroundColor {
+    width: 100%;
+    background-color: #000;
+    padding-block: 48px;
+}
+
+.snakeColor {
+    margin: auto;
+    height: 42px;
+    width: 210px;
+    background-color: gray;
+}
+
+.snakePattern {
+    height: 100%;
+    width: 100%;
+    box-shadow: inset 5px 5px 5px -5px rgba(255, 255, 255, 1),
+        inset -5px -5px 5px -5px rgba(0, 0, 0, 1),
+        5px 5px 5px rgba(0, 0, 0, 0.5);
 }
