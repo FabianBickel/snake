@@ -76,6 +76,9 @@ class Display {
 }
 
 export default class GuiManager {
+  #onFieldSizeChanged;
+  set onFieldSizeChanged(callback) { this.#onFieldSizeChanged = callback; }
+
   #snake;
   #food;
 
@@ -126,6 +129,7 @@ export default class GuiManager {
       this.#canvas.width = this.#fieldWidth * this.#boxWidth;
       this.#canvas.height = this.#fieldHeight * this.#boxHeight;
       this.#context = Element.context;
+      this.#onFieldSizeChanged(this.#fieldWidth, this.#fieldHeight);
     }
 
     function addChangeEventListeners() {
@@ -147,11 +151,11 @@ export default class GuiManager {
   }
 
   updateScore(score) {
-    Display.score(score);
+    Display.score(score || 0);
   }
 
   updateHighScore(highScore) {
-    Display.highScore(highScore);
+    Display.highScore(highScore || 'none');
   }
 
   updateBackgroundColor() {
@@ -171,7 +175,6 @@ export default class GuiManager {
 
   updateSnakeSpeed() {
     this.#snakeSpeed = Selector.snakeSpeed.value;
-    Display.snakeSpeed();
   }
 
   setAnimationDuration(duration) {
@@ -259,12 +262,15 @@ export default class GuiManager {
   }
 
   #drawSnake() {
+    if (!this.#snake) return;
     for (const segment of this.#snake) {
+      console.log('drew snake segment')
       this.#drawBox(segment.x, segment.y, this.#snakeColor);
     }
   }
 
   #drawFoods() {
+    if (!this.#food) return;
     for (const food of this.#food) {
       this.#drawBox(food.x, food.y, this.#foodColor);
     }

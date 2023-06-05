@@ -14,12 +14,12 @@ const gui = new GuiManager(
   game.highScore
 );
 
-game.onScoreChanged = gui.updateScore;
-game.onHighScoreChanged = gui.updateHighScore;
-game.onGameStarted = gui.gameStarted;
-game.onGamePaused = gui.gamePaused;
-game.onGameResumed = gui.gameResumed;
-game.onGameOver = gui.gameOver;
-game.onGameReset = gui.resetGame;
-game.onSnakeChanged = gui.updateSnake;
-game.onFruitChanged = gui.updateFood;
+game.onScoreChanged = gui.updateScore.bind(gui);
+game.onHighScoreChanged = gui.updateHighScore.bind(gui);
+game.onGameStarted = gui.gameStarted.bind(gui);
+game.onGamePaused = gui.gamePaused.bind(gui);
+game.onGameResumed = gui.gameResumed.bind(gui);
+game.onGameOver = gui.gameOver.bind(gui);
+game.onGameReset = gui.resetGame.bind(gui);
+game.onSnakeChanged = gui.updateSnake.bind(gui);
+game.onFoodChanged = gui.updateFood.bind(gui);
