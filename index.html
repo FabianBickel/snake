@@ -15,11 +15,16 @@
     <div id="scoresOverlay">
         <span class="score"></span> / <span class="highScore"></span>
     </div>
-    <div id="menuOverlay">
+    <button id="pauseGame">
+        Pause
+    </button>
+    <div id="menuOverlay" class="afterReset backgroundColor">
         <div id="menuContainer">
             <div class="menu">
-                <label for="designPreset">Preset</label>
-                <select id="designPreset">
+                <h1 hidden class="gameOver">Game Over</h1>
+                <hr hidden class="gameOver">
+                <label for="theme">Theme</label>
+                <select id="theme">
                     <!-- Options will be added here with JavaScript -->
                 </select>
                 <label for="backgroundColor">Background</label>
@@ -29,20 +34,16 @@
                 <input type="color" id="snakeColor">
                 <label for="snakePattern">Pattern</label>
                 <select id="snakePattern">
-                    <option value="none" selected>None</option>
-                    <option value="stripes">Stripes</option>
+                    <!-- Options will be added here with JavaScript -->>
                 </select>
                 <hr>
                 <label for="snakeSpeed">Difficulty</label>
                 <select id="snakeSpeed">
-                    <option value="30">Easy</option>
-                    <option value="50">Medium</option>
-                    <option value="70" selected>Hard</option>
-                    <option value="100">Insane</option>
+                    <!-- Options will be added here with JavaScript -->
                 </select>
                 <label for="highscore">Highscore</label>
                 <label id="highscore" class="highScore"></label>
-                <button class="startGame">Start Game</button>
+                <button id="startGame">Start Game</button>
             </div>
             <div id="preview" class="menu">
                 <p>Preview</p>

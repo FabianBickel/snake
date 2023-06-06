@@ -16,12 +16,24 @@ body {
     overflow: hidden;
 }
 
-#scoreOverlay {
+#scoresOverlay {
     position: fixed;
     top: 10px;
     left: 10px;
     font-size: 30px;
+    color: white;
 }
+
+#pauseGame {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 30px;
+    color: white;
+    border: none;
+    background: none;
+}
+
 
 #menuOverlay {
     display: flex;
@@ -30,20 +42,27 @@ body {
     position: fixed;
     inset: 0;
     padding-block: 16px;
-    background-color: rgba(0, 0, 0, 1);
-    backdrop-filter: blur(100px);
-    -webkit-backdrop-filter: blur(100px);
-
-    box-shadow: 0 0 400px rgba(0, 0, 0, 0) inset;
+    
     transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, box-shadow;
-    transition-timing-function: cubic-bezier(.25, .43, .06, .96);
+    transition-timing-function: ease-out;
     transition-duration: 1s;
 }
 
-#menuOverlay.hidden {
-    background-color: rgba(0, 0, 0, 0);
+#menuOverlay.afterReset {
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(100px);
+    box-shadow: 0 0 400px rgba(0, 0, 0, 0.5) inset;
+}
+
+#menuOverlay.afterStart {
     backdrop-filter: blur(0);
     -webkit-backdrop-filter: blur(0);
+    box-shadow: 0 0 400px rgba(0, 0, 0, 0) inset;
+}
+
+#menuOverlay.afterPause {
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     box-shadow: 0 0 400px rgba(0, 0, 0, 0) inset;
 }
 
@@ -68,24 +87,27 @@ body {
     max-height: 100%;
     overflow-y: scroll;
     padding: 16px;
-    /* margin: 0; */
     background-color: rgba(52, 56, 64, 0.3);
     border: 1px solid rgba(232, 240, 255, 0.2);
     border-radius: 16px;
     box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.25);
     color: #fff;
-    backdrop-filter: blur(100px);
-    -webkit-backdrop-filter: blur(100px);
+    backdrop-filter: blur(300px);
+    -webkit-backdrop-filter: blur(300px);
     opacity: 1;
-    transition: opacity .5s ease;
+    scale: 1;
+    transition-property: opacity, scale;
+    transition-timing-function: ease-out;
 }
 
 .menu * {
     opacity: 0.8;
 }
 
-#menuOverlay.hidden .menu {
+#menuOverlay.afterStart .menu {
     opacity: 0;
+    scale: 0.9;
+    transition-timing-function: ease-in;
 }
 
 .menu h2 {
@@ -150,13 +172,16 @@ body {
     border-radius: 5px;
 }
 
+.menu .gameOver {
+    grid-column: span 2;
+    
+}
+
 .menu button,
 .menu input,
 .menu select {
     transition: opacity 0.3s ease;
 }
-
-
 
 .menu button:hover:not(:disabled),
 .menu input:hover:not(:disabled),
@@ -178,23 +203,30 @@ body {
     margin-bottom: -16px;
 }
 
-.backgroundColor {
+#preview * {
+    opacity: 1;
+}
+
+#preview .backgroundColor {
     width: 100%;
     background-color: #000;
     padding-block: 48px;
 }
 
-.snakeColor {
+#preview .snakeColor {
     margin: auto;
     height: 42px;
     width: 210px;
     background-color: gray;
 }
 
-.snakePattern {
+#preview .snakePattern {
     height: 100%;
     width: 100%;
-    box-shadow: inset 5px 5px 5px -5px rgba(255, 255, 255, 1),
+    background-size: contain;
+    background-repeat: repeat;
+    /* box-shadow: inset 5px 5px 5px -5px rgba(255, 255, 255, 1),
         inset -5px -5px 5px -5px rgba(0, 0, 0, 1),
-        5px 5px 5px rgba(0, 0, 0, 0.5);
+        2px 2px 5px rgba(0, 0, 0, 0.5); */
+    
 }

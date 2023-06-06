@@ -467,14 +467,14 @@ function startDrawing() {
 }
 
 function gameLoop() {
-  
+
   updateDirectionVariables();
   if (gamePaused || direction == -1) {
     return;
   }
-  
+
   let { snakeX, snakeY } = getNewSnakeCoordinates();
-  
+
   if (isCollidingWithWall(snakeX, snakeY) || isCollidingWithSelf(snakeX, snakeY)) {
     clearInterval(game);
     return;
@@ -548,8 +548,8 @@ function addNewHead(snakeX, snakeY) {
 }
 
 function spawnFruit() {
-  fruit.x = Math.floor(Math.random() * boxesWidth);
-  fruit.y = Math.floor(Math.random() * boxesHeight);
+  x = Math.floor(Math.random() * boxesWidth);
+  y = Math.floor(Math.random() * boxesHeight);
 }
 
 function startGame() {
@@ -583,27 +583,14 @@ function startGame() {
 
   let initialX = null;
   let initialY = null;
-  let lastMoveX = null;
-  let lastMoveY = null;
 
   function startTouch(e) {
-    console.log('startTouch');
     initialX = e.touches[0].clientX;
     initialY = e.touches[0].clientY;
   }
 
   function moveTouch(e) {
     if (initialX === null || initialY === null) {
-      return;
-    }
-
-    console.log('initialX: ' + initialX);
-    console.log('initialY: ' + initialY);
-    console.log('lastMoveX: ' + lastMoveX);
-    console.log('lastMoveY: ' + lastMoveY);
-
-    if (lastMoveX && lastMoveY && initialX > lastMoveX - 10 && initialX < lastMoveX + 10 && initialY > lastMoveY - 10 && initialY < lastMoveY + 10) {
-      console.log('skipping move');
       return;
     }
 
@@ -634,8 +621,6 @@ function startGame() {
     initialY = e.touches[0].clientY;
     lastMoveX = initialX;
     lastMoveY = initialY;
-
-    // e.preventDefault();
   }
 
   document.addEventListener("touchstart", startTouch, false);
@@ -650,7 +635,7 @@ function startGame() {
 
   function changeDirection(directionPressed) {
     if (directionPressed == -1) return;
-    const isLinus = snake.length <= 1;
+    const isLinus = snake.length == 1;
     const isOpposite = (directionPressed + 2) % 4 == direction;
     const isParallel = directionPressed % 2 == direction % 2;
     if (gamePaused && (!isOpposite || isLinus)) gamePaused = false;

@@ -5,68 +5,262 @@
 import Config from './config.js';
 
 export default class gameManager {
-  #onScoreChanged;
-  set onScoreChanged(callback) { this.#onScoreChanged = callback; }
-  #onHighScoreChanged;
-  set onHighScoreChanged(callback) { this.#onHighScoreChanged = callback; }
-  #onGameStarted;
-  set onGameStarted(callback) { this.#onGameStarted = callback; }
-  #onGamePaused;
-  set onGamePaused(callback) { this.#onGamePaused = callback; }
-  #onGameResumed;
-  set onGameResumed(callback) { this.#onGameResumed = callback; }
   #onGameOver;
   set onGameOver(callback) { this.#onGameOver = callback; }
-  #onGameReset;
-  set onGameReset(callback) { this.#onGameReset = callback; }
-  #onSnakeChanged;
-  set onSnakeChanged(callback) { this.#onSnakeChanged = callback; }
-  #onFoodChanged;
-  set onFoodChanged(callback) { this.#onFoodChanged = callback; }
+  set onSnakeChanged(callback) { this.#listenableVariables['snake'].callback = callback; }
+  set onFoodsChanged(callback) { this.#listenableVariables['foods'].callback = callback; }
+  set onScoreChanged(callback) { this.#listenableVariables['score'].callback = callback; }
+  set onHighScoreChanged(callback) { this.#listenableVariables['highScore'].callback = callback; }
 
-  #snake = undefined;
-  get snake() { return this.#snake; }
-  #foods = [];
-  get foods() { return this.#foods; }
-  #score;
-  get score() { return this.#score; }
-  #highScore;
-  get highScore() { return this.#highScore; }
+  #listenableVariables = {
+    snake: {},
+    foods: {},
+    score: {},
+    highScore: {}
+  };
+
+  #setListenableVariable(variableName, value) {
+    this.#listenableVariables[variableName].value = value;
+    this.#executeIfExists(this.#listenableVariables[variableName].callback, value);
+  }
+
+  #executeIfExists(eventHandler, ...args) {
+    if (eventHandler) {
+      eventHandler(...args);
+    }
+  }
+
+  get #snake() { return this.#listenableVariables.snake.value; }
+  set #snake(value) { this.#setListenableVariable('snake', value); }
+  get #foods() { return this.#listenableVariables.foods.value; }
+  set #foods(value) { this.#setListenableVariable('foods', value); }
+  get #score() { return this.#listenableVariables.score.value; }
+  set #score(value) { this.#setListenableVariable('score', value); }
+  get #highScore() { return this.#listenableVariables.highScore.value; }
+  set #highScore(value) { this.#setListenableVariable('highScore', value); }
+
+  // #snake = undefined;
+  // get snake() { return this.#snake; }
+  // #foods = [];
+  // get foods() { return this.#foods; }
+  // #score;
+  // get score() { return this.#score; }
+  // #highScore;
+  // get highScore() { return this.#highScore; }
+
   #fieldWidth;
   #fieldHeight;
 
+  #snakeSpeed;
+  #frameTime;
+  #lastIntervalUpdate;
+
+  #direction = -1;
+  #newDirection = -1;
+  #bufferedDirection = -1;
+
+  #game;
+  #gamePaused;
+  #gameOver;
+
   constructor() {
     // Keep this as small as possible to reduce visual load time
-
+    this.updateSnakeSpeed(Config.fallbackSnakeSpeed);
   }
 
   updatePlayingField(fieldWidth, fieldHeight) {
     this.#fieldWidth = fieldWidth;
     this.#fieldHeight = fieldHeight;
-    this.#respawnSnake();
-    this.#spawnFood();
+    this.resetGame();
   }
 
-  #executeIfExists(eventHandler, ...args) {
-    eventHandler ? eventHandler(...args) : null;
-  }
-
-  #respawnSnake() {
-    console.log('respawn snake');
+  #resetSnake() {
     let snakeHead = this.#getRandomCoordinatesObject();
-    snakeHead.direction = Math.random() * 3;
+    const randomDirection = Math.random() * 3;
+    const randomDirectionRounded = Math.floor(randomDirection);
+    snakeHead.direction = randomDirectionRounded;
     this.#snake = [snakeHead];
-    this.#executeIfExists(this.#onSnakeChanged, this.#snake);
   }
 
-  #spawnFood() {
-    let food = this.#getRandomCoordinatesObject();
-    this.#foods.push(food);
+  #resetFoods() {
+    let food;
+    do {
+      food = this.#getRandomCoordinatesObject();
+    } while (this.#overlapsWithSnake(food));
+    this.#foods = [food];
   }
 
   #getRandomCoordinatesObject() {
-    const x = Math.random() * (this.#fieldWidth - 1);
-    const y = Math.random() * (this.#fieldHeight - 1);
-    return { x, y };
+    const x = Math.random() * this.#fieldWidth;
+    const y = Math.random() * this.#fieldHeight;
+    const roundedX = Math.floor(x);
+    const roundedY = Math.floor(y);
+    return { x: roundedX, y: roundedY };
+  }
+
+  updateSnakeSpeed(snakeSpeed) {
+    this.#snakeSpeed = snakeSpeed;
+    this.#frameTime = 1000 / (snakeSpeed / 10);
+
+    const timeSinceLastFrame = this.#getTimeSinceLastFrame();
+    const timeToNextFrame = Math.max(this.#frameTime - timeSinceLastFrame, 0);
+    this.#updateGameLoopInterval(timeToNextFrame);
+  }
+
+  #updateDirection() {
+    if (this.#gamePaused) return;
+    console.log('updating direction', this.#direction, this.#newDirection, this.#bufferedDirection);
+    if (this.#newDirection != -1) {
+      this.#direction = this.#newDirection;
+    }
+    this.#newDirection = this.#bufferedDirection;
+    this.#bufferedDirection = -1;
+  }
+
+  handleDirectionInput(directionPressed) {
+    if (directionPressed == -1) return;
+    if (this.#gamePaused) return;
+    console.log('handling direction pressed');
+    let direction = this.#direction;
+    if (direction == -1) {
+      direction = this.#snake[0].direction;
+    }
+    const isLinus = this.#snake.length == 1;
+    const isParallel = directionPressed % 2 == direction % 2;
+    const isOpposite = directionPressed == (direction + 2) % 4;
+    if (isParallel) {
+      if (this.#newDirection != -1) this.#bufferedDirection = directionPressed;
+      if (this.#bufferedDirection == -1 && isLinus) this.#newDirection = directionPressed;
+      if (isOpposite || isLinus) return;
+    }
+    this.#newDirection = directionPressed;
+  }
+
+  #getTimeSinceLastFrame() {
+    const now = Date.now();
+    return now - this.#lastIntervalUpdate;
+  }
+
+  #updateGameLoopInterval(timeToNextFrame) {
+    if (!this.#game) return;
+    clearInterval(this.#game);
+    setTimeout(() => {
+      this.#game = setInterval(this.#gameLoop.bind(this), this.#frameTime);
+    }, timeToNextFrame);
+  }
+
+  requestFrameProgress() {
+    const timeSinceLastFrame = this.#getTimeSinceLastFrame();
+    const progress = timeSinceLastFrame / this.#frameTime;
+    return progress;
+  }
+
+  startGame() {
+    if (this.#gameOver) this.resetGame();
+    this.#gamePaused = false;
+    if (this.#game) return;
+    if (!this.#snake || !this.#foods || this.#snake.length == 0 || this.#foods.length == 0) {
+      throw new Error('Game cannot be started without snake or foods'
+        , `snake: ${this.#snake}`
+        , `foods: ${this.#foods}`
+      );
+    }
+    this.#game = setInterval(this.#gameLoop.bind(this), this.#frameTime);
+  }
+
+  #gameLoop() {
+    if (this.#gamePaused) return;
+    this.#updateDirection();
+    if (this.#direction == -1) return;
+    this.#setIntervalTimestamp();
+    if (this.#snakeIsColliding()) {
+      this.#gameOver = true;
+      this.#onGameOver();
+      this.resetGame();
+      return;
+    }
+    this.#handleSnakeMovement();
+    this.#score = this.#snake.length - 1;
+    this.#highScore = Math.max(this.#highScore, this.#score);
+    localStorage.setItem('highScore', this.#highScore);
+  }
+
+
+  #setIntervalTimestamp() {
+    const now = Date.now();
+    this.#lastIntervalUpdate = now;
+  }
+
+  #snakeIsColliding() {
+    const { x, y } = this.#getNewSnakeHead();
+    if (this.#isOutOfBounds(x, y)) return true;
+    if (this.#overlapsWithSnake(x, y)) return true;
+  }
+
+  #isOutOfBounds(x, y) {
+    if (x < 0 || y < 0) return true;
+    if (x >= this.#fieldWidth || y >= this.#fieldHeight) return true;
+    return false;
+  }
+
+  #overlapsWithSnake(x, y) {
+    for (let i = this.#snake.length - 1; i >= 0; i--) {
+      const snakePart = this.#snake[i];
+      if (snakePart.x === x && snakePart.y === y) return true;
+    }
+    return false;
+  }
+
+  #handleSnakeMovement() {
+    const newHead = this.#getNewSnakeHead();
+    this.#snake.unshift(newHead);
+    if (this.#checkFoodEaten()) {
+      this.#resetFoods();
+      return;
+    }
+    this.#snake.pop();
+  }
+
+  #checkFoodEaten() {
+    const snakeHead = this.#snake[0];
+    for (const food of this.#foods) {
+      if (snakeHead.x === food.x && snakeHead.y === food.y) {
+        return true;
+      }
+    }
+  }
+
+  #getNewSnakeHead() {
+    const snakeHead = this.#snake[0];
+    let newX = snakeHead.x;
+    let newY = snakeHead.y;
+    if (this.#direction === 0) newY--;
+    if (this.#direction === 1) newX++;
+    if (this.#direction === 2) newY++;
+    if (this.#direction === 3) newX--;
+    return { x: newX, y: newY, direction: this.#direction };
+  }
+
+  pauseGame() {
+    this.#gamePaused = true;
+    this.#direction = -1;
+  }
+
+  resumeGame() {
+    this.#gamePaused = true;
+  }
+
+  resetGame() {
+    this.#resetSnake();
+    this.#resetFoods();
+    this.#gameOver = false;
+    this.#gamePaused = true;
+
+    this.#direction = -1;
+    this.#newDirection = -1;
+    this.#bufferedDirection = -1;
+
+    this.#score = 0;
+    this.#highScore = localStorage.getItem('highScore');
   }
 }

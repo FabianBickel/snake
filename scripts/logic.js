@@ -4,7 +4,8 @@
 
 import GameManager from './game-manager.js';
 import GuiManager from './gui-manager.js';
-import Config from './config.js';
+
+// localStorage.clear();
 
 const game = new GameManager();
 const gui = new GuiManager(
@@ -16,10 +17,13 @@ const gui = new GuiManager(
 
 game.onScoreChanged = gui.updateScore.bind(gui);
 game.onHighScoreChanged = gui.updateHighScore.bind(gui);
-game.onGameStarted = gui.gameStarted.bind(gui);
-game.onGamePaused = gui.gamePaused.bind(gui);
-game.onGameResumed = gui.gameResumed.bind(gui);
 game.onGameOver = gui.gameOver.bind(gui);
-game.onGameReset = gui.resetGame.bind(gui);
 game.onSnakeChanged = gui.updateSnake.bind(gui);
-game.onFoodChanged = gui.updateFood.bind(gui);
+game.onFoodsChanged = gui.updateFood.bind(gui);
+
+gui.onFieldSizeChanged = game.updatePlayingField.bind(game);
+gui.onSnakeSpeedChanged = game.updateSnakeSpeed.bind(game);
+gui.onGameStarted = game.startGame.bind(game);
+gui.onGamePaused = game.pauseGame.bind(game);
+gui.onGameReset = game.resetGame.bind(game);
+gui.onDirectionInput = game.handleDirectionInput.bind(game);

@@ -3,6 +3,7 @@
 'use strict';
 
 import Config from './config.js';
+import { changeColorOfSvg, getComplementaryColor } from './gui-functions.js';
 
 class Element {
   static get canvas() {
@@ -19,11 +20,17 @@ class Element {
   static get scoresOverlay() {
     return document.getElementById('scoreOverlay');
   }
+  static get startGame() {
+    return document.getElementById('startGame');
+  }
+  static get pauseGame() {
+    return document.getElementById('pauseGame');
+  }
 }
 
 class Selector {
-  static get designPreset() {
-    return document.getElementById('designPreset');
+  static get theme() {
+    return document.getElementById('theme');
   }
   static get backgroundColor() {
     return document.getElementById('backgroundColor');
@@ -59,13 +66,13 @@ class Display {
   }
 
   static backgroundColor() {
-    this.#applyStyleToPreviewElements('backgroundColor', Selector.backgroundColor.value, 'backgroundColor');
+    this.#applyStyleToPreviewElements('backgroundColor', this.#hexToRgbA(Selector.backgroundColor.value), 'backgroundColor');
   }
   static snakeColor() {
-    this.#applyStyleToPreviewElements('snakeColor', Selector.snakeColor.value, 'backgroundColor');
+    this.#applyStyleToPreviewElements('snakeColor', this.#hexToRgbA(Selector.snakeColor.value), 'backgroundColor');
   }
   static snakePattern() {
-    // this.#applyStyle('snakePattern', Selector.snakePattern.value, 'backgroundImage');
+    this.#applyStyleToPreviewElements('snakePattern', `url(${Selector.snakePattern.value})`, 'backgroundImage');
   }
   static score(score) {
     this.#applyTextContentToDisplayElements('score', score);
@@ -73,11 +80,34 @@ class Display {
   static highScore(highScore) {
     this.#applyTextContentToDisplayElements('highScore', highScore);
   }
+
+  static #hexToRgbA(hex) {
+    var c;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+      c = hex.substring(1).split('');
+      if (c.length == 3) {
+        c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+      }
+      c = '0x' + c.join('');
+      return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',0.9999)';
+    }
+    throw new Error('Bad Hex');
+  }
 }
 
 export default class GuiManager {
   #onFieldSizeChanged;
   set onFieldSizeChanged(callback) { this.#onFieldSizeChanged = callback; }
+  #onGameStarted;
+  set onGameStarted(callback) { this.#onGameStarted = callback; }
+  #onGamePaused;
+  set onGamePaused(callback) { this.#onGamePaused = callback; }
+  #onGameReset;
+  set onGameReset(callback) { this.#onGameReset = callback; }
+  #onSnakeSpeedChanged;
+  set onSnakeSpeedChanged(callback) { this.#onSnakeSpeedChanged = callback; }
+  #onDirectionInput;
+  set onDirectionInput(callback) { this.#onDirectionInput = callback; }
 
   #snake;
   #food;
@@ -102,7 +132,7 @@ export default class GuiManager {
   constructor(snake, food, score, highScore) {
     this.updateSnake(snake);
     this.updateFood(food);
-    this.#transitionDuration = Config.animationDuration;
+    this.#transitionDuration = Config.transitionDuration;
     this.#boxWidth = Config.boxSize;
     this.#boxHeight = Config.boxSize;
     this.updateScore(score);
@@ -119,9 +149,35 @@ export default class GuiManager {
     window.onload = onDocumentLoaded.bind(this);
 
     function onDocumentLoaded() {
+      this.#setTransitionDuration.bind(this)(Config.transitionDuration);
       getCanvasVariables.bind(this)();
       addChangeEventListeners.bind(this)();
-      this.#startDrawing();
+
+      let options = [];
+      for (const theme of Config.themes) {
+        let option = document.createElement('option');
+        option.textContent = theme.name;
+        option.value = JSON.stringify(theme);
+        options.push(option);
+      }
+      Selector.theme.append(...options);
+      this.#applyPreset.bind(this)();
+      options = [];
+      for (const difficultyLevel of Config.difficultyLevels) {
+        let option = document.createElement('option');
+        option.value = difficultyLevel.speed;
+        option.textContent = difficultyLevel.name;
+        options.push(option);
+      }
+      Selector.snakeSpeed.append(...options);
+      options = [];
+      for (const pattern of Config.snakePatterns) {
+        let option = document.createElement('option');
+        option.value = pattern.path;
+        option.textContent = pattern.name;
+        options.push(option);
+      }
+      Selector.snakePattern.append(...options);
     };
 
     function getCanvasVariables() {
@@ -133,16 +189,25 @@ export default class GuiManager {
     }
 
     function addChangeEventListeners() {
-      Selector.designPreset.addEventListener('change', this.applyPreset.bind(this));
-      Selector.backgroundColor.addEventListener('change', this.updateBackgroundColor.bind(this));
-      Selector.snakeColor.addEventListener('change', this.updateSnakeColor.bind(this));
-      Selector.snakePattern.addEventListener('change', this.updateSnakePattern.bind(this));
-      Selector.snakeSpeed.addEventListener('change', this.updateSnakeSpeed.bind(this));
+      Selector.theme
+        .addEventListener('change', this.#applyPreset.bind(this));
+      Selector.backgroundColor.addEventListener('change', this.#updateBackgroundColor.bind(this));
+      Selector.snakeColor.addEventListener('change', this.#updateSnakeColor.bind(this));
+      Selector.snakePattern.addEventListener('change', this.#updateSnakePattern.bind(this));
+      Selector.snakeSpeed.addEventListener('change', this.#updateSnakeSpeed.bind(this));
+
+      Element.startGame.addEventListener('click', this.#startGame.bind(this));
+      Element.pauseGame.addEventListener('click', this.#pauseGame.bind(this));
+
+      window.addEventListener('keydown', this.#handleKeyboardInput.bind(this));
+      document.addEventListener('touchstart', this.#handleTouchStart.bind(this));
+      document.addEventListener('touchmove', this.#handleTouchMove.bind(this));
     }
   }
 
   updateSnake(snake) {
-    this.#lastSnakeUpdate = performance.now();
+    this.#lastSnakeUpdate = Date.now();
+    if (!snake) return;
     this.#snake = snake;
   }
 
@@ -158,83 +223,160 @@ export default class GuiManager {
     Display.highScore(highScore || 'none');
   }
 
-  updateBackgroundColor() {
+  #updateBackgroundColor() {
     this.#backgroundColor = Selector.backgroundColor.value;
     Display.backgroundColor();
   }
 
-  updateSnakeColor() {
+  #updateSnakeColor() {
     this.#snakeColor = Selector.snakeColor.value;
+    console.log(this.#snakeColor);
     Display.snakeColor();
   }
 
-  updateSnakePattern() {
-    this.#snakePattern = Selector.snakePattern.value;
-    Display.snakePattern();
-  }
-
-  updateSnakeSpeed() {
-    this.#snakeSpeed = Selector.snakeSpeed.value;
-  }
-
-  setAnimationDuration(duration) {
-    this.#transitionDuration = duration;
-    const animationElements = [
-      Element.menuOverlay,
-    ];
-    animationElements.forEach(element => {
-      element.style.animationDuration = `${this.#transitionDuration}ms`;
+  #updateSnakePattern() {
+    const path = Selector.snakePattern.value;
+    const color = getComplementaryColor(this.#snakeColor, 0);
+    changeColorOfSvg(path, color, image => {
+      this.#snakePattern = this.#context.createPattern(image, 'repeat');
+      Display.snakePattern();
     });
   }
 
-  applyPreset(preset) {
+  #updateSnakeSpeed() {
+    this.#snakeSpeed = Selector.snakeSpeed.value;
+    this.#onSnakeSpeedChanged(this.#snakeSpeed);
+  }
+
+  #setTransitionDuration(duration) {
+    this.#transitionDuration = duration;
+    const transitionElements = [
+      Element.menuOverlay,
+    ];
+    transitionElements.forEach(element => {
+      element.style.transitionDuration = `${this.#transitionDuration}ms`;
+    });
+  }
+
+  #applyPreset() {
+    const preset = JSON.parse(Selector.theme.value);
     Selector.backgroundColor.value = preset.backgroundColor;
     Selector.snakeColor.value = preset.snakeColor;
-    Selector.snakePattern.value = preset.snakePattern;
-    Display.snakeSpeed();
+    this.#updateBackgroundColor();
+    this.#updateSnakeColor();
+    Display.backgroundColor();
     Display.snakeColor();
-    Display.snakePattern();
   }
 
-  gameStarted() {
-    this.#hideMenuOverlay();
-  }
-
-  gamePaused() {
-    this.#showMenuOverlay();
-    this.#stopDrawing();
-  }
-
-  gameResumed() {
-    this.#hideMenuOverlay();
+  #startGame() {
+    console.log('start game');
     this.#startDrawing();
+    this.#executeIfExists(this.#onGameStarted);
+    Element.menuOverlay.classList = 'afterStart';
+    Element.menuOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+    setTimeout(() => {
+      Element.menuOverlay.style.display = 'none';
+      const elements = document.getElementsByClassName('gameOver');
+      for (const element of elements) {
+        element.hidden = true;
+      }
+    }, this.#transitionDuration);
+  }
+
+  #pauseGame() {
+    console.log('pause game');
+    this.#executeIfExists(this.#onGamePaused);
+    Element.startGame.textContent = 'Continue';
+    Element.menuOverlay.style.display = 'flex';
+    Element.menuOverlay.classList = 'afterPause';
   }
 
   gameOver() {
-    this.#showMenuOverlay();
-    this.#stopDrawing();
+    console.log('game over');
+    Element.startGame.textContent = 'Restart Game';
+
+    Element.menuOverlay.style.display = 'flex';
+    Element.menuOverlay.classList = 'afterPause backgroundColor';
+    Display.backgroundColor();
+    const elements = document.getElementsByClassName('gameOver');
+    for (const element of elements) {
+      element.hidden = false;
+    }
   }
 
-  resetGame() {
-    this.#stopDrawing();
+  #handleKeyboardInput(event) {
+    const key = event.key;
+    this.#handleDirectionInputs(key);
+    this.#handleStartPauseInputs(key);
   }
 
-  #showMenuOverlay() {
-    menuOverlay.style.display = 'flex';
-    menuOverlay.classList.remove('hidden');
+  #handleDirectionInputs(key) {
+    let directionPressed = -1;
+    if (key == 'ArrowUp' || key == 'w')
+      directionPressed = 0;
+    else if (key == 'ArrowRight' || key == 'd')
+      directionPressed = 1;
+    else if (key == 'ArrowDown' || key == 's')
+      directionPressed = 2;
+    else if (key == 'ArrowLeft' || key == 'a')
+      directionPressed = 3;
+    this.#onDirectionInput(directionPressed);
   }
 
-  #hideMenuOverlay() {
-    menuOverlay.classList.add('hidden');
-    setTimeout(() => {
-      menuOverlay.style.display = 'flex';
-    }, animationDuration);
+  #handleStartPauseInputs(key) {
+    if (key == 'Enter') this.#startGame();
+    if (key == 'Escape' || key == ' ' || key == 'p') this.#pauseGame();
+  }
+
+
+  #initialX = null;
+  #initialY = null;
+
+  #handleTouchStart(e) {
+    this.#initialX = e.touches[0].clientX;
+    this.#initialY = e.touches[0].clientY;
+  }
+
+  #handleTouchMove(e) {
+    if (this.#initialX === null || this.#initialY === null) {
+      return;
+    }
+
+    let diffX = this.#initialX - e.touches[0].clientX;
+    let diffY = this.#initialY - e.touches[0].clientY;
+
+    let direction = -1;
+    if (this.#swipedHorizontally(diffX, diffY)) {
+      if (diffX > 0) {
+        direction = 3;
+      } else {
+        direction = 1;
+      }
+    } else {
+      if (diffY > 0) {
+        direction = 0;
+      } else {
+        direction = 2;
+      }
+    }
+    this.#onDirectionInput(direction);
+
+    this.#initialX = null;
+    this.#initialY = null;
+  }
+
+  #swipedHorizontally(diffX, diffY) {
+    return Math.abs(diffX) > Math.abs(diffY);
+  }
+
+  #executeIfExists(eventHandler, ...args) {
+    eventHandler ? eventHandler(...args) : null;
   }
 
   #isDrawing = false;
 
   #startDrawing() {
-    this.#lastSnakeUpdate = performance.now();
+    this.#lastSnakeUpdate = Date.now();
     if (this.#isDrawing) return;
     this.#isDrawing = true;
     this.#initializeDrawing();
@@ -252,7 +394,7 @@ export default class GuiManager {
 
   drawFrame() {
     this.#clearCanvas();
-    // this.#drawGrid();
+    this.#drawGrid();
     this.#drawSnake();
     this.#drawFoods();
   }
@@ -264,8 +406,8 @@ export default class GuiManager {
   #drawSnake() {
     if (!this.#snake) return;
     for (const segment of this.#snake) {
-      console.log('drew snake segment')
       this.#drawBox(segment.x, segment.y, this.#snakeColor);
+      this.#drawBox(segment.x, segment.y, this.#snakePattern);
     }
   }
 
@@ -276,26 +418,26 @@ export default class GuiManager {
     }
   }
 
-  #drawBox(x, y, color) {
-    this.#context.fillStyle = color;
+  #drawBox(x, y, fillStyle) {
+    this.#context.fillStyle = fillStyle;
     x *= this.#boxWidth;
     y *= this.#boxHeight;
     const width = this.#boxWidth;
     const height = this.#boxHeight;
     this.#context.fillRect(x, y, width, height);
-    }
+  }
 
   #drawGrid() {
     if (!this.#backgroundColor) {
       this.#backgroundColor = Selector.backgroundColor.value;
     }
-    const gridDotColor = getComplementaryColor(this.#backgroundColor.value, 64);
+    const gridDotColor = getComplementaryColor(this.#backgroundColor, 64);
     this.#context.fillStyle = gridDotColor;
 
-    for (let x = 1; x < this.#boxWidth; x++) {
-      for (let y = 1; y < this.#boxHeight; y++) {
+    for (let x = 1; x < this.#fieldWidth; x++) {
+      for (let y = 1; y < this.#fieldHeight; y++) {
         this.#context.beginPath();
-        this.#context.arc(x * this.#fieldWidth, y * this.#fieldHeight, 1.2, 0, 2 * Math.PI);
+        this.#context.arc(x * this.#boxWidth, y * this.#boxHeight, 1.2, 0, 2 * Math.PI);
         this.#context.fill();
       }
     }

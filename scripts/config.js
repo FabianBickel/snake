@@ -1,12 +1,16 @@
+// 06.06.2023 Version 4: Spiel ohne Tastatur, Pause und Game Over
+
+
 export default class Config {
   static #boxSize = 42;
   static #startLength = 1;
   static #fallbackBackgroundColor = "#000000";
   static #fallbackSnakeColor = "#FFFFFF";
   static #fallbackFoodColor = "#FF0000";
-  static #animationDuration = 1000;
+  static #fallbackSnakeSpeed = 40;
+  static #transitionDuration = 500;
 
-  static #menucConfigurations = {
+  static #menuConfigurations = {
     afterReset: {
       showDesignMenu: true,
       showPreviewMenu: true,
@@ -52,9 +56,9 @@ export default class Config {
       name: "Impossible",
       speed: 200
     }
-  ]
+  ];
 
-  static #designPresets = [
+  static #themes = [
     {
       name: "Classic",
       backgroundColor: "#000000",
@@ -85,20 +89,28 @@ export default class Config {
       backgroundColor: "#2B2D42",
       snakeColor: "#8D99AE"
     },
-    {
-      name: "Flashbang",
-      backgroundColor: "#FFFFFF",
-      snakeColor: "#000000"
-    }
   ];
+
+  static #snakePatterns = [
+    {
+      name: "None",
+      path: ""
+    },
+    {
+      name: "Stripes",
+      path: "../patterns/stripes.svg"
+    }
+  ]
 
   static get boxSize() { return this.#boxSize; }
   static get startLength() { return this.#startLength; }
   static get fallbackBackgroundColor() { return this.#fallbackBackgroundColor; }
   static get fallbackSnakeColor() { return this.#fallbackSnakeColor; }
   static get fallbackFoodColor() { return this.#fallbackFoodColor; }
-  static get animationDuration() { return this.#animationDuration; }
-  static get menuConfigurations() { return this.#menucConfigurations; }
+  static get fallbackSnakeSpeed() { return this.#fallbackSnakeSpeed; }
+  static get transitionDuration() { return this.#transitionDuration; }
+  static get menuConfigurations() { return this.#menuConfigurations; }
   static get difficultyLevels() { return this.#difficultyLevels; }
-  static get designPresets() { return this.#designPresets; }
+  static get themes() { return this.#themes; }
+  static get snakePatterns() { return this.#snakePatterns; }
 }
