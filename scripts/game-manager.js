@@ -128,11 +128,13 @@ export default class gameManager {
     const isLinus = this.#snake.length == 1;
     const isParallel = directionPressed % 2 == direction % 2;
     const isOpposite = directionPressed == (direction + 2) % 4;
-    if (isParallel) {
+    if (isParallel && direction != -1) {
       if (this.#newDirection != -1) this.#bufferedDirection = directionPressed;
-      if (this.#bufferedDirection == -1 && isLinus) this.#newDirection = directionPressed;
-      if (isOpposite || isLinus) return;
+      // if (this.#bufferedDirection == -1 && isLinus) this.#newDirection = directionPressed;
+      if (isOpposite || isLinus) this.#newDirection = directionPressed;
+      return;
     }
+    if (this.#newDirection != -1) return;
     this.#newDirection = directionPressed;
   }
 
