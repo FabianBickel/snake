@@ -30,6 +30,19 @@ export default class gameManager {
     }
   }
 
+  get snake() {
+    let snake = this.#listenableVariables.snake.value;
+    const timeDifference = Date.now() - this.#lastIntervalUpdate;
+    const fraction = timeDifference / this.#frameTime;
+    const fractionCapped = Math.min(fraction, 1);
+    snake[0].fraction = fractionCapped;
+
+    for (let i = 1; i < snake.length; i++) {
+      snake[i].fraction = 1;
+    }
+
+    return snake;
+  }
   get #snake() { return this.#listenableVariables.snake.value; }
   set #snake(value) { this.#setListenableVariable('snake', value); }
   get #foods() { return this.#listenableVariables.foods.value; }
@@ -70,6 +83,7 @@ export default class gameManager {
     const randomDirection = Math.random() * 3;
     const randomDirectionRounded = Math.floor(randomDirection);
     snakeHead.direction = randomDirectionRounded;
+    snakeHead.fraction = 1;
     this.#snake = [snakeHead];
   }
 
@@ -100,7 +114,6 @@ export default class gameManager {
 
   #updateDirection() {
     if (this.#gamePaused) return;
-    console.log('updating direction', this.#direction, this.#newDirection, this.#bufferedDirection);
     if (this.#newDirection != -1) {
       this.#direction = this.#newDirection;
     }
@@ -228,7 +241,7 @@ export default class gameManager {
     if (this.#direction === 1) newX++;
     if (this.#direction === 2) newY++;
     if (this.#direction === 3) newX--;
-    return { x: newX, y: newY, direction: this.#direction };
+    return { x: newX, y: newY, direction: this.#direction, fraction: 0 };
   }
 
   pauseGame() {

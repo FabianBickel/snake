@@ -16,6 +16,8 @@ export default class GuiManager {
   set onSnakeSpeedChanged(callback) { this.#onSnakeSpeedChanged = callback; }
   #onDirectionInput;
   set onDirectionInput(callback) { this.#onDirectionInput = callback; }
+  #requestSnakeState;
+  set requestSnakeState(callback) { this.#requestSnakeState = callback; }
 
   #snake;
   #food;
@@ -307,12 +309,51 @@ export default class GuiManager {
   }
 
   #drawSnake() {
+    this.#snake = this.#requestSnakeState();
     if (!this.#snake) return;
-    for (const segment of this.#snake) {
+
+    this.#drawHead();
+    this.#drawBody();
+    const tailFraction = 1 - this.#snake[0].fraction;
+    this.#drawTail(tailFraction);
+  }
+
+  #drawHead() {
+    const head = this.#snake[0];
+    this.#drawPartialBox(head.x, head.y, this.#snakeColor, head.fraction, head.direction);
+  }
+
+  #drawBody() {
+    for (let i = 1; i < this.#snake.length; i++) {
+      const segment = this.#snake[i];
       this.#drawBox(segment.x, segment.y, this.#snakeColor);
       this.#drawBox(segment.x, segment.y, this.#snakePattern);
     }
   }
+  
+  #drawTail(fraction) {
+    const tail = this.#snake[this.#snake.length - 1];
+    const { xOffset, yOffset } = this.#getTailOffset(tail);
+    
+    if (tail.fraction == 1 || this.#snake.length == 1) {
+      const x = tail.x + xOffset;
+      const y = tail.y + yOffset;
+      const direction = (tail.direction + 2) % 4;
+      this.#drawPartialBox(x, y, this.#snakeColor, fraction, direction);
+    }
+  }
+  
+    #getTailOffset(tail) {
+      let xOffset = 0;
+      let yOffset = 0;
+  
+      if (tail.direction == 0) yOffset = 1;
+      if (tail.direction == 1) xOffset = -1;
+      if (tail.direction == 2) yOffset = -1;
+      if (tail.direction == 3) xOffset = 1;
+  
+      return { xOffset, yOffset };
+    }
 
   #drawFoods() {
     if (!this.#food) return;
@@ -322,12 +363,45 @@ export default class GuiManager {
   }
 
   #drawBox(x, y, fillStyle) {
+    this.#drawPartialBox(x, y, fillStyle, 1, -1);
+  }
+
+  #drawPartialBox(x, y, fillStyle, fraction, direction) {
+    const modifiers = this.#getDirectionFractionModifiers(direction, fraction);
+
+    const xPixels = x * this.#boxWidth + this.#boxWidth * modifiers.xModifier;
+    const yPixels = y * this.#boxHeight + this.#boxHeight * modifiers.yModifier;
+    const width = this.#boxWidth * modifiers.widthModifier;
+    const height = this.#boxHeight * modifiers.heightModifier;
+
     this.#context.fillStyle = fillStyle;
-    x *= this.#boxWidth;
-    y *= this.#boxHeight;
-    const width = this.#boxWidth;
-    const height = this.#boxHeight;
-    this.#context.fillRect(x, y, width, height);
+    this.#context.fillRect(xPixels, yPixels, width, height);
+  }
+
+  #getDirectionFractionModifiers(direction, fraction) {
+    let xModifier = 0;
+    let yModifier = 0;
+    let widthModifier = 1;
+    let heightModifier = 1;
+
+    switch (direction) {
+      case 0:
+        heightModifier = fraction;
+        yModifier = 1 - fraction;
+        break;
+      case 1:
+        widthModifier = fraction;
+        break;
+      case 2:
+        heightModifier = fraction;
+        break;
+      case 3:
+        widthModifier = fraction;
+        xModifier = 1 - fraction;
+        break;
+    }
+
+    return { xModifier, yModifier, widthModifier, heightModifier };
   }
 
   #drawGrid() {
