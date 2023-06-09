@@ -8,12 +8,7 @@ import GuiManager from './gui-manager.js';
 // localStorage.clear();
 
 const game = new GameManager();
-const gui = new GuiManager(
-  game.snake,
-  game.foods,
-  game.score,
-  game.highScore
-);
+const gui = new GuiManager();
 
 game.onScoreChanged = gui.updateScore.bind(gui);
 game.onHighScoreChanged = gui.updateHighScore.bind(gui);
@@ -21,6 +16,7 @@ game.onGameOver = gui.gameOver.bind(gui);
 game.onSnakeChanged = gui.updateSnake.bind(gui);
 game.onFoodsChanged = gui.updateFood.bind(gui);
 
+gui.requestSnakeState = () => { return game.snake };
 gui.onFieldSizeChanged = game.updatePlayingField.bind(game);
 gui.onSnakeSpeedChanged = game.updateSnakeSpeed.bind(game);
 gui.onGameStarted = game.startGame.bind(game);

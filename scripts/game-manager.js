@@ -39,15 +39,6 @@ export default class gameManager {
   get #highScore() { return this.#listenableVariables.highScore.value; }
   set #highScore(value) { this.#setListenableVariable('highScore', value); }
 
-  // #snake = undefined;
-  // get snake() { return this.#snake; }
-  // #foods = [];
-  // get foods() { return this.#foods; }
-  // #score;
-  // get score() { return this.#score; }
-  // #highScore;
-  // get highScore() { return this.#highScore; }
-
   #fieldWidth;
   #fieldHeight;
 
@@ -120,7 +111,6 @@ export default class gameManager {
   handleDirectionInput(directionPressed) {
     if (directionPressed == -1) return;
     if (this.#gamePaused) return;
-    console.log('handling direction pressed');
     let direction = this.#direction;
     if (direction == -1) {
       direction = this.#snake[0].direction;
@@ -130,7 +120,6 @@ export default class gameManager {
     const isOpposite = directionPressed == (direction + 2) % 4;
     if (isParallel && direction != -1) {
       if (this.#newDirection != -1) this.#bufferedDirection = directionPressed;
-      // if (this.#bufferedDirection == -1 && isLinus) this.#newDirection = directionPressed;
       if (isOpposite || isLinus) this.#newDirection = directionPressed;
       return;
     }
@@ -186,7 +175,6 @@ export default class gameManager {
     this.#highScore = Math.max(this.#highScore, this.#score);
     localStorage.setItem('highScore', this.#highScore);
   }
-
 
   #setIntervalTimestamp() {
     const now = Date.now();

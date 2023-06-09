@@ -12,8 +12,6 @@ export default class GuiManager {
   set onGameStarted(callback) { this.#onGameStarted = callback; }
   #onGamePaused;
   set onGamePaused(callback) { this.#onGamePaused = callback; }
-  #onGameReset;
-  set onGameReset(callback) { this.#onGameReset = callback; }
   #onSnakeSpeedChanged;
   set onSnakeSpeedChanged(callback) { this.#onSnakeSpeedChanged = callback; }
   #onDirectionInput;
@@ -39,14 +37,10 @@ export default class GuiManager {
   #transitionDuration;
   #lastSnakeUpdate;
 
-  constructor(snake, food, score, highScore) {
-    this.updateSnake(snake);
-    this.updateFood(food);
+  constructor() {
     this.#transitionDuration = Config.transitionDuration;
     this.#boxWidth = Config.boxSize;
     this.#boxHeight = Config.boxSize;
-    this.updateScore(score);
-    this.updateHighScore(highScore);
 
     this.#backgroundColor = Config.fallbackBackgroundColor;
     this.#snakeColor = Config.fallbackSnakeColor;
@@ -57,12 +51,12 @@ export default class GuiManager {
     this.#fieldHeight = Math.floor(window.innerHeight / this.#boxHeight);
 
     window.onload = onDocumentLoaded.bind(this);
-
+    
     function onDocumentLoaded() {
       this.#setTransitionDuration.bind(this)(Config.transitionDuration);
       getCanvasVariables.bind(this)();
       addChangeEventListeners.bind(this)();
-
+      
       let options = [];
       for (const theme of Config.themes) {
         let option = document.createElement('option');
@@ -140,7 +134,6 @@ export default class GuiManager {
 
   #updateSnakeColor() {
     this.#snakeColor = Selector.snakeColor.value;
-    console.log(this.#snakeColor);
     Display.snakeColor();
   }
 
@@ -297,8 +290,8 @@ export default class GuiManager {
   }
 
   #initializeDrawing() {
-    this.drawFrame();
     if (!this.#isDrawing) return;
+    this.drawFrame();
     requestAnimationFrame(this.#initializeDrawing.bind(this));
   }
 
