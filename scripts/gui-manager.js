@@ -20,7 +20,7 @@ export default class GuiManager {
   set requestSnakeState(callback) { this.#requestSnakeState = callback; }
 
   #snake;
-  #food;
+  #foods;
 
   #canvas;
   #context;
@@ -53,12 +53,12 @@ export default class GuiManager {
     this.#fieldHeight = Math.floor(window.innerHeight / this.#boxHeight);
 
     window.onload = onDocumentLoaded.bind(this);
-    
+
     function onDocumentLoaded() {
       this.#setTransitionDuration.bind(this)(Config.transitionDuration);
       getCanvasVariables.bind(this)();
       addChangeEventListeners.bind(this)();
-      
+
       let options = [];
       for (const theme of Config.themes) {
         let option = document.createElement('option');
@@ -117,8 +117,8 @@ export default class GuiManager {
     this.#snake = snake;
   }
 
-  updateFood(food) {
-    this.#food = food;
+  updateFood(foods) {
+    this.#foods = foods;
   }
 
   updateScore(score) {
@@ -174,7 +174,6 @@ export default class GuiManager {
   }
 
   #startGame() {
-    console.log('start game');
     this.#startDrawing();
     this.#executeIfExists(this.#onGameStarted);
     Element.menuOverlay.classList = 'afterStart';
@@ -189,7 +188,6 @@ export default class GuiManager {
   }
 
   #pauseGame() {
-    console.log('pause game');
     this.#executeIfExists(this.#onGamePaused);
     Element.startGame.textContent = 'Continue';
     Element.menuOverlay.style.display = 'flex';
@@ -197,7 +195,6 @@ export default class GuiManager {
   }
 
   gameOver() {
-    console.log('game over');
     Element.startGame.textContent = 'Restart Game';
 
     Element.menuOverlay.style.display = 'flex';
@@ -287,10 +284,6 @@ export default class GuiManager {
     this.#initializeDrawing();
   }
 
-  #stopDrawing() {
-    this.#isDrawing = false;
-  }
-
   #initializeDrawing() {
     if (!this.#isDrawing) return;
     this.drawFrame();
@@ -321,45 +314,59 @@ export default class GuiManager {
   #drawHead() {
     const head = this.#snake[0];
     this.#drawPartialBox(head.x, head.y, this.#snakeColor, head.fraction, head.direction);
+    // this.#drawPartialBox(head.x, head.y, this.#snakeColor, head.fraction, head.direction);
   }
 
   #drawBody() {
     for (let i = 1; i < this.#snake.length; i++) {
       const segment = this.#snake[i];
       this.#drawBox(segment.x, segment.y, this.#snakeColor);
-      this.#drawBox(segment.x, segment.y, this.#snakePattern);
+      // this.#drawBox(segment.x, segment.y, this.#snakePattern);
     }
   }
-  
+
   #drawTail(fraction) {
     const tail = this.#snake[this.#snake.length - 1];
     const { xOffset, yOffset } = this.#getTailOffset(tail);
-    
+
     if (tail.fraction == 1 || this.#snake.length == 1) {
       const x = tail.x + xOffset;
       const y = tail.y + yOffset;
       const direction = (tail.direction + 2) % 4;
       this.#drawPartialBox(x, y, this.#snakeColor, fraction, direction);
+      // this.#drawPartialBox(x, y, this.#snakePattern, fraction, direction);
     }
   }
-  
-    #getTailOffset(tail) {
-      let xOffset = 0;
-      let yOffset = 0;
-  
-      if (tail.direction == 0) yOffset = 1;
-      if (tail.direction == 1) xOffset = -1;
-      if (tail.direction == 2) yOffset = -1;
-      if (tail.direction == 3) xOffset = 1;
-  
-      return { xOffset, yOffset };
-    }
+
+  #getTailOffset(tail) {
+    let xOffset = 0;
+    let yOffset = 0;
+
+    if (tail.direction == 0) yOffset = 1;
+    if (tail.direction == 1) xOffset = -1;
+    if (tail.direction == 2) yOffset = -1;
+    if (tail.direction == 3) xOffset = 1;
+
+    return { xOffset, yOffset };
+  }
 
   #drawFoods() {
-    if (!this.#food) return;
-    for (const food of this.#food) {
-      this.#drawBox(food.x, food.y, this.#foodColor);
+    if (!this.#foods) return;
+    for (const food of this.#foods) {
+      if (!food) continue;
+      this.#drawBox(food.x, food.y, food.iconColor);
     }
+  }
+
+  #drawIcon(x, y, iconName) {
+    const path = `icons/${iconName}.svg`;
+    // const path = '../patterns/stripes.svg';
+    // const path = 'http://localhost:5500/icons/apple.svg';
+
+    changeColorOfSvg(path, this.#foodColor, image => {
+      let pattern = this.#context.createPattern(image, 'no-repeat');
+      this.#drawBox(x, y, pattern);
+    });
   }
 
   #drawBox(x, y, fillStyle) {

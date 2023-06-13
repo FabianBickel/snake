@@ -14,6 +14,7 @@ export default class gameManager {
 
   #listenableVariables = {
     snake: {},
+    snakeStatusEffects: {},
     foods: {},
     score: {},
     highScore: {}
@@ -30,9 +31,13 @@ export default class gameManager {
     }
   }
 
+  get snakeStatusEffects() {
+    throw new Error('Not implemented yet');
+  }
+
   get snake() {
     let snake = this.#listenableVariables.snake.value;
-    const timeDifference = Date.now() - this.#lastIntervalUpdate;
+    const timeDifference = Date.now() - this.#lastIntervalUpdateTime;
     const fraction = timeDifference / this.#frameTime;
     const fractionCapped = Math.min(fraction, 1);
     snake[0].fraction = fractionCapped;
@@ -45,6 +50,8 @@ export default class gameManager {
   }
   get #snake() { return this.#listenableVariables.snake.value; }
   set #snake(value) { this.#setListenableVariable('snake', value); }
+  get #snakeStatusEffects() { return this.#listenableVariables.snakeStatusEffects.value; }
+  set #snakeStatusEffects(value) { this.#setListenableVariable('snakeStatusEffects', value); }
   get #foods() { return this.#listenableVariables.foods.value; }
   set #foods(value) { this.#setListenableVariable('foods', value); }
   get #score() { return this.#listenableVariables.score.value; }
@@ -57,7 +64,11 @@ export default class gameManager {
 
   #snakeSpeed;
   #frameTime;
-  #lastIntervalUpdate;
+
+  #lastIntervalUpdateTime;
+  #lastPowerUpSpawnedTime;
+
+  #powerUpSpawnInterval;
 
   #direction = -1;
   #newDirection = -1;
@@ -78,6 +89,36 @@ export default class gameManager {
     this.resetGame();
   }
 
+  pauseGame() {
+    this.#gamePaused = true;
+    this.#direction = -1;
+  }
+
+  resumeGame() {
+    this.#gamePaused = true;
+  }
+
+  resetGame() {
+    this.#resetSnake();
+    this.#resetFoods();
+    this.#gameOver = false;
+    this.#gamePaused = true;
+
+    this.#direction = -1;
+    this.#newDirection = -1;
+    this.#bufferedDirection = -1;
+
+    this.#lastIntervalUpdateTime = Date.now();
+    this.#lastPowerUpSpawnedTime = Date.now();
+
+    this.#score = 0;
+    this.#highScore = localStorage.getItem('highScore');
+
+    this.#powerUpSpawnInterval = Config.powerUpSpawnInterval;
+    this.#maxPowerUpCount = Config.maxPowerUpCount;
+    this.#snakeStatusEffects = [];
+  }
+
   #resetSnake() {
     let snakeHead = this.#getRandomCoordinatesObject();
     const randomDirection = Math.random() * 3;
@@ -90,7 +131,9 @@ export default class gameManager {
   #resetFoods() {
     let food;
     do {
-      food = this.#getRandomCoordinatesObject();
+      const { x, y } = this.#getRandomCoordinatesObject();
+      const normalFood = Config.normalFood;
+      food = { x, y, ...normalFood };
     } while (this.#overlapsWithSnake(food));
     this.#foods = [food];
   }
@@ -168,7 +211,7 @@ export default class gameManager {
 
   #getTimeSinceLastFrame() {
     const now = Date.now();
-    return now - this.#lastIntervalUpdate;
+    return now - this.#lastIntervalUpdateTime;
   }
 
   #updateGameLoopInterval(timeToNextFrame) {
@@ -203,6 +246,8 @@ export default class gameManager {
     this.#updateDirection();
     if (this.#direction == -1) return;
     this.#setIntervalTimestamp();
+    this.#updateStatusEffects();
+    this.#updatePowerUps();
     if (this.#snakeIsColliding()) {
       this.#gameOver = true;
       this.#onGameOver();
@@ -215,9 +260,58 @@ export default class gameManager {
     localStorage.setItem('highScore', this.#highScore);
   }
 
+  #updateStatusEffects() {
+    for (let i = 0; i < this.#snakeStatusEffects.length; i++) {
+      const effect = this.#snakeStatusEffects[i];
+      effect.timeLeft -= this.#frameTime;
+      if (effect.timeLeft <= 0) {
+        if (effect.onEnd) effect.onEnd();
+        this.#snakeStatusEffects.splice(i, 1);
+      }
+    }
+  }
+
+  #updatePowerUps() {
+    this.#handlePowerUpDespawn();
+
+    const now = Date.now();
+    const timeSinceLastPowerUp = now - this.#lastPowerUpSpawnedTime;
+    if (timeSinceLastPowerUp < this.#powerUpSpawnInterval) return;
+
+    this.#spawnPowerUp();
+  }
+
+  #spawnPowerUp() {
+    const { x, y } = this.#getRandomCoordinatesObject();
+    const randomPowerUp = this.#getRandomPowerUp();
+    const powerUp = { x, y, ...randomPowerUp };
+    this.#foods.push(powerUp);
+    this.#lastPowerUpSpawnedTime = Date.now();
+  }
+
+  #handlePowerUpDespawn() {
+    for (let i = this.#foods.length - 1; i >= 0; i--) {
+      const food = this.#foods[i];
+      if (!food.lifeSpan) continue;
+      food.lifeSpan -= this.#frameTime;
+      if (food.lifeSpan <= 0) {
+        this.#foods.splice(i, 1);
+      }
+    }
+  }
+
+
+
+
+  #getRandomPowerUp() {
+    const powerUps = Config.powerUps;
+    const randomIndex = Math.floor(Math.random() * powerUps.length);
+    return powerUps[randomIndex];
+  }
+
   #setIntervalTimestamp() {
     const now = Date.now();
-    this.#lastIntervalUpdate = now;
+    this.#lastIntervalUpdateTime = now;
   }
 
   #snakeIsColliding() {
@@ -243,20 +337,85 @@ export default class gameManager {
   #handleSnakeMovement() {
     const newHead = this.#getNewSnakeHead();
     this.#snake.unshift(newHead);
-    if (this.#checkFoodEaten()) {
-      this.#resetFoods();
-      return;
-    }
+    this.#handleFoodEaten();
     this.#snake.pop();
   }
 
-  #checkFoodEaten() {
-    const snakeHead = this.#snake[0];
-    for (const food of this.#foods) {
-      if (snakeHead.x === food.x && snakeHead.y === food.y) {
-        return true;
+  #handleFoodEaten() {
+    const foodEaten = this.#getFoodEaten();
+    if (foodEaten) {
+      this.#handleFoodType(foodEaten);
+      const foodIndex = this.#foods.indexOf(foodEaten);
+      this.#foods.splice(foodIndex, 1);
+    }
+  }
+
+  #handleFoodType(foodEaten) {
+    const type = foodEaten.type;
+    if (type == "normal") {
+      this.#handleNormalFood();
+      return;
+    }
+    if (type == "speed") {
+      this.#handleSpeedFood(foodEaten);
+      return;
+    }
+    if (type == "length") {
+      this.#handleLengthFood(foodEaten);
+      return;
+    }
+    throw new Error(`Unknown food type '${type}'`);
+  }
+
+  #handleNormalFood() {
+    const tail = this.#snake[this.#snake.length - 1];
+    this.#snake.push(tail);
+    const { x, y } = this.#getRandomCoordinatesObject();
+    const food = { x, y, ...Config.normalFood };
+    this.#foods.push(food);
+  }
+
+  #handleSpeedFood(foodEaten) {
+    const amount = this.#snakeSpeed - Math.round(this.#snakeSpeed * foodEaten.factor);
+    const statusEffect = {
+      type: 'speed',
+      amount,
+      timeLeft: foodEaten.duration,
+      onEnd: () => this.updateSnakeSpeed(Number(this.#snakeSpeed) - Number(amount))
+    };
+    this.#snakeStatusEffects.push(statusEffect);
+    this.updateSnakeSpeed(Number(this.#snakeSpeed) + Number(amount));
+  }
+
+  #handleLengthFood(foodEaten) {
+    const amount = foodEaten.amount;
+    const limiter = Math.abs(Math.min((this.#snake.length - 2) + amount, 0));
+    const iterationCount = Math.abs(amount) - limiter;
+    console.log('amount: ', amount);
+    console.log('snake length: ', this.#snake.length);
+    console.log(`Math.abs(Math.min((${this.#snake.length} - 1) + ${amount}, 0)))`);
+    console.log('limiter: ', limiter);
+    console.log('iterationCount: ', iterationCount);
+    for (let i = 0; i < iterationCount; i++) {
+      const tailIndex = this.#snake.length - 1;
+      if (amount < 0) {
+        this.#snake.splice(tailIndex, 1);
+      } else if (amount > 0) {
+        const tail = this.#snake[tailIndex];
+        this.#snake.push(tail);
       }
     }
+  }
+
+  #getFoodEaten() {
+    const snakeHead = this.#snake[0];
+    for (const food of this.#foods) {
+      if (!food) continue;
+      if (snakeHead.x === food.x && snakeHead.y === food.y) {
+        return food;
+      }
+    }
+    return undefined;
   }
 
   #getNewSnakeHead() {
@@ -268,28 +427,5 @@ export default class gameManager {
     if (this.#direction === 2) newY++;
     if (this.#direction === 3) newX--;
     return { x: newX, y: newY, direction: this.#direction, fraction: 0 };
-  }
-
-  pauseGame() {
-    this.#gamePaused = true;
-    this.#direction = -1;
-  }
-
-  resumeGame() {
-    this.#gamePaused = true;
-  }
-
-  resetGame() {
-    this.#resetSnake();
-    this.#resetFoods();
-    this.#gameOver = false;
-    this.#gamePaused = true;
-
-    this.#direction = -1;
-    this.#newDirection = -1;
-    this.#bufferedDirection = -1;
-
-    this.#score = 0;
-    this.#highScore = localStorage.getItem('highScore');
   }
 }

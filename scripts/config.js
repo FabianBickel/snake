@@ -102,6 +102,64 @@ export default class Config {
     }
   ]
 
+  static #normalFood = {
+    type: "normal",
+    iconName: "apple",
+    iconColor: "#FF3A4C"
+  }
+  static #powerUpSpawnInterval = 7000;
+  static #powerUps = [
+    {
+      type: "speed",
+      iconName: "speed-up",
+      iconColor: "#FFD369",
+      factor: 1.35,
+      duration: 5000,
+      lifeSpan: 14000
+    },
+    {
+      type: "speed",
+      iconName: "slow-down",
+      iconColor: "#6EC1E4",
+      factor: 0.65,
+      duration: 5000,
+      lifeSpan: 14000
+    },
+    {
+      type: "length",
+      iconName: "lengthen",
+      iconColor: "#FF0000",
+      amount: 3,
+      lifeSpan: 14000
+    },
+    {
+      type: "length",
+      iconName: "shorten",
+      iconColor: "#8D99AE",
+      amount: -3,
+      lifeSpan: 14000
+    },
+    // {
+    //   type: "reverse",
+    // },
+    // {
+    //   type: "invert",
+    //   duration: 5000,
+    // },     
+    // {
+    //   type: "teleportAbility",
+    //   distance: 3,
+    // },
+    // {
+    //   type: "teleportRandom",
+    //   distance: 5,
+    // },
+    // {
+    //   type: "shield",
+    //   hitPoints: 1,
+    // }
+  ]
+
   static get boxSize() { return this.#boxSize; }
   static get startLength() { return this.#startLength; }
   static get fallbackBackgroundColor() { return this.#fallbackBackgroundColor; }
@@ -113,4 +171,7 @@ export default class Config {
   static get difficultyLevels() { return this.#difficultyLevels; }
   static get themes() { return this.#themes; }
   static get snakePatterns() { return this.#snakePatterns; }
+  static get normalFood() { return this.#normalFood; }
+  static get powerUpSpawnInterval() { return this.#powerUpSpawnInterval; }
+  static get powerUps() { return this.#powerUps; }
 }
