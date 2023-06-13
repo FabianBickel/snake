@@ -124,20 +124,46 @@ export default class gameManager {
   handleDirectionInput(directionPressed) {
     if (directionPressed == -1) return;
     if (this.#gamePaused) return;
+
     let direction = this.#direction;
     if (direction == -1) {
       direction = this.#snake[0].direction;
     }
+
     const isLinus = this.#snake.length == 1;
+
+    if (isLinus) {
+      this.#handleDirectionInputWhenLinus(directionPressed);
+    } else {
+      this.#handleDirectionInputWhenLong(direction, directionPressed);
+    }
+  }
+
+  #handleDirectionInputWhenLinus(directionPressed) {
+    if (this.#newDirection == -1) {
+      this.#newDirection = directionPressed;
+    } else if (this.#bufferedDirection == -1 && directionPressed != this.#newDirection) {
+      this.#bufferedDirection = directionPressed;
+    }
+  }
+
+  #handleDirectionInputWhenLong(direction, directionPressed) {
     const isParallel = directionPressed % 2 == direction % 2;
     const isOpposite = directionPressed == (direction + 2) % 4;
-    if (isParallel && direction != -1) {
-      if (this.#newDirection != -1) this.#bufferedDirection = directionPressed;
-      if (isOpposite || isLinus) this.#newDirection = directionPressed;
+
+    if (this.#newDirection == -1) {
+      if (!isOpposite) {
+        this.#newDirection = directionPressed;
+      }
       return;
     }
-    if (this.#newDirection != -1) return;
-    this.#newDirection = directionPressed;
+    
+    const isOppositeOfNew = directionPressed == (this.#newDirection + 2) % 4;
+    const canSetBufferedDirection = !isOppositeOfNew && this.#bufferedDirection == -1 && directionPressed != this.#newDirection;
+    
+    if (canSetBufferedDirection) {
+      this.#bufferedDirection = directionPressed;
+    }
   }
 
   #getTimeSinceLastFrame() {
